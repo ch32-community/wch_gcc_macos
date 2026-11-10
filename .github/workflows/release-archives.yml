@@ -1,0 +1,50 @@
+name: Attach toolchain archives to release
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+jobs:
+  archive:
+    name: Package ${{ matrix.archive }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - directory: arm-none-eabi-gcc
+            archive: wch_arm_gcc_x86_64-apple-darwin
+          - directory: RISC-V Embedded GCC
+            archive: wch_riscv_gcc8_x86_64-apple-darwin
+          - directory: RISC-V Embedded GCC12
+            archive: wch_riscv_gcc12_x86_64-apple-darwin
+          - directory: RISC-V Embedded GCC15
+            archive: wch_riscv_gcc15_x86_64-apple-darwin
+
+    steps:
+      - name: Check out release source
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.ref }}
+          persist-credentials: false
+
+      - name: Create tar.gz archive
+        shell: bash
+        env:
+          SOURCE_DIRECTORY: ${{ matrix.directory }}
+          ARCHIVE_NAME: ${{ matrix.archive }}
+        run: |
+          tar -czf "${RUNNER_TEMP}/${ARCHIVE_NAME}.tar.gz" -- "$SOURCE_DIRECTORY"
+
+      - name: Attach archive to release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+          ARCHIVE_NAME: ${{ matrix.archive }}
+        run: |
+          gh release upload "$RELEASE_TAG" "${RUNNER_TEMP}/${ARCHIVE_NAME}.tar.gz" --clobber

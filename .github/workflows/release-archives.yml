@@ -37,6 +37,10 @@ jobs:
           SOURCE_DIRECTORY: ${{ matrix.directory }}
           ARCHIVE_NAME: ${{ matrix.archive }}
         run: |
+          # Restore executable permissions before packaging compiler tools.
+          find "$SOURCE_DIRECTORY" -type f \
+            \( -path '*/bin/*' -o -path '*/libexec/*' \) \
+            -exec chmod a+x {} +
           archive_directory="${ARCHIVE_NAME%_x86_64-apple-darwin}"
           mv -- "$SOURCE_DIRECTORY" "$archive_directory"
           tar -czf "${RUNNER_TEMP}/${ARCHIVE_NAME}.tar.gz" -- "$archive_directory"
